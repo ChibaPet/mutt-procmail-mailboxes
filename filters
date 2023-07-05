@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+
+# Written in 2023 by Mason Loring Bliss <mason@blisses.org>
+#
+# To the extent possible under law, the author(s) have dedicated all
+# copyright and related and neighboring rights to this software to the public
+# domain worldwide. This software is distributed without any warranty.
+#
+# You should have received a copy of the CC0 Public Domain Dedication along
+# with this software. If not, see:
+#
+#   http://creativecommons.org/publicdomain/zero/1.0/
+
+use warnings;
+use strict;
+
+open my $filterlist,'<',"$ENV{HOME}/filter.list"
+    or die "Couldn't open filter.list: $!";
+open my $procmailrc,'>',"$ENV{HOME}/.procmailrc"
+    or die "Couldn't open .procmailrc: $!";
+
+print $procmailrc <<"END";
+MAILDIR=\$HOME/mail/
+DEFAULT=\$HOME/mail/
+LOGFILE=\$HOME/.filterlog
+LOGABSTRACT=all\n
+END
+
+while (<$filterlist>) {
+    chomp;
+    my ($method, $mailbox) = split;
+    my $listname = $mailbox;
+    $listname =~ s/-bounces//;
+
+    print $procmailrc ":0:\n";
+    if ($method eq "sender") {
+        print $procmailrc "*^Sender:.*$mailbox\n";
+    } elsif ($method eq "xloop") {
+        print $procmailrc "*^X-Loop:.*$mailbox\n";
+    } elsif ($method eq "listid") {
+        print $procmailrc "*^List-ID:.*$mailbox\n";
+    }
+    print $procmailrc "$listname/\n\n";
+
+    if (! -d "$ENV{HOME}/mail/$listname") {
+        print "Creating $ENV{HOME}/mail/$listname\n";
+        system "maildirmake.dovecot $ENV{HOME}/mail/$listname";
+    }
+}
+close $procmailrc;
+close $filterlist;
