@@ -6,11 +6,24 @@ server, at a minimum you're adding an entry to Mutt's mailboxes list, using
 some maildirmake command to create a mailbox, and then adding a filter to
 get the right email delivered to that mailbox.
 
-The notion of these scripts is that you maintain a list of lists you want
-to follow, along with the correct keyword for filtering them, and scripting
-does the tedious bits.
+The notion of these scripts is that you maintain a list of lists called
+`filter.list` that enumerates what you want to follow, along with the
+correct keyword for filtering them. Then, scripting does the tedious bits.
 
-A list of lists will look something like this:
+Procmail rules are build from `filter.head` and `filter.list`, where
+`filter.head` is a header block put in place directly, and `filter.list` is
+a set of keywords determining which lists you want filtered and presented
+in order to Mutt. A simple `filter.head` file might look like this:
+
+```
+$ cat filter.head
+MAILDIR=$HOME/mail/
+DEFAULT=$HOME/mail/
+LOGFILE=$HOME/.filterlog
+LOGABSTRACT=all
+```
+
+`filter.list` might look like this:
 
 ```
 $ head filter.list 
@@ -27,31 +40,25 @@ listid cee-hci-americas
 ```
 
 The items in the list are in the order in which you want Mutt to present
-them, with the desired keyword for identifying the list. When you've
-subscribed to a new list, you add a new line to this file, and run the
-'filters' script, which will build your .procmailrc file. For the example
-given, the procmail rules would start off as follows:
+them, with the desired keyword for identifying the list. The current
+keywords and their expansions are:
 
 ```
-MAILDIR=$HOME/mail/
-DEFAULT=$HOME/mail/
-LOGFILE=$HOME/.filterlog
-LOGABSTRACT=all
-
-:0:
-*^Sender:.*shadowpeople-bounces
-shadowpeople/
-
-:0:
-*^List-ID:.*announce-list
-announce-list/
-
-:0:
-*^X-Loop:.*native
-native/
-
-...
+sender Sender:.*
+xloop X-Loop:.*
+listid List-ID:.*
+rss X-RSS-Feed:.*
+to To:.*
+from From:.*
+deliveredto Delivered-To:.*
 ```
+
+When you want to have an entry just for Mutt, with no corresponding
+Procmail entry, you can use some other keyword that's not on the list. A
+safe example would be `none`.
+
+When you've subscribed to a new list, you add a new line to this file, and
+run the 'filters' script, which will build your .procmailrc file.
 
 When you start Mutt, instead of a hardcoded `mailboxes` list, it will ssh
 to your mail server and run the `mailboxes` script, which dynamically

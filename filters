@@ -14,33 +14,42 @@
 use warnings;
 use strict;
 
+open my $filterhead,'<',"$ENV{HOME}/filter.head"
+    or die "Couldn't open filter.head $!";
 open my $filterlist,'<',"$ENV{HOME}/filter.list"
     or die "Couldn't open filter.list: $!";
 open my $procmailrc,'>',"$ENV{HOME}/.procmailrc"
     or die "Couldn't open .procmailrc: $!";
 
-print $procmailrc <<"END";
-MAILDIR=\$HOME/mail/
-DEFAULT=\$HOME/mail/
-LOGFILE=\$HOME/.filterlog
-LOGABSTRACT=all\n
-END
+while (<$filterhead>) {
+    print $procmailrc $_;
+}
 
 while (<$filterlist>) {
     chomp;
     my ($method, $mailbox) = split;
     my $listname = $mailbox;
+    my $rule = ":0:\n";
     $listname =~ s/-bounces//;
 
-    print $procmailrc ":0:\n";
     if ($method eq "sender") {
-        print $procmailrc "*^Sender:.*$mailbox\n";
+        $rule .= "*^Sender:.*$mailbox\n";
     } elsif ($method eq "xloop") {
-        print $procmailrc "*^X-Loop:.*$mailbox\n";
+        $rule .= "*^X-Loop:.*$mailbox\n";
     } elsif ($method eq "listid") {
-        print $procmailrc "*^List-ID:.*$mailbox\n";
+        $rule .= "*^List-ID:.*$mailbox\n";
+    } elsif ($method eq "rss") {
+        $rule .= "*^X-RSS-Feed:.*$mailbox\n";
+    } elsif ($method eq "to") {
+        $rule .= "*^To:.*$mailbox\n";
+    } elsif ($method eq "from") {
+        $rule .= "*^From:.*$mailbox\n";
+    } elsif ($method eq "deliveredto") {
+        $rule .= "*^Delivered-To:.*$mailbox\n";
+    } else {
+        next;
     }
-    print $procmailrc "$listname/\n\n";
+    print $procmailrc "$rule$listname/\n\n";
 
     if (! -d "$ENV{HOME}/mail/$listname") {
         print "Creating $ENV{HOME}/mail/$listname\n";
