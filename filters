@@ -31,6 +31,7 @@ while (<$filterlist>) {
     my $listname = $mailbox;
     my $rule = ":0:\n";
     $listname =~ s/-bounces//;
+    $listname =~ s/\./_/g;
 
     if ($method eq "sender") {
         $rule .= "*^Sender:.*$mailbox\n";
